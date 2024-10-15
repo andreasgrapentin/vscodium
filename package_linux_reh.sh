@@ -21,6 +21,8 @@ NODE_VERSION="16.20.2"
 
 if [[ "${VSCODE_ARCH}" == "ppc64le" ]]; then
   GLIBC_VERSION="2.28"
+elif [[ "${VSCODE_ARCH}" == "s390x" ]]; then
+  GLIBC_VERSION="2.28"
 elif [[ "${VSCODE_ARCH}" == "riscv64" ]]; then
   # Unofficial RISC-V nodejs builds doesn't provide v16.x
   # Node 18 is buggy so use 20 here for now: https://github.com/VSCodium/vscodium/issues/2060
@@ -49,6 +51,12 @@ elif [[ "${VSCODE_ARCH}" == "riscv64" ]]; then
   VSCODE_REMOTE_DEPENDENCIES_CONTAINER_NAME="vscodium/vscodium-linux-build-agent:focal-devtoolset-riscv64"
   export ELECTRON_SKIP_BINARY_DOWNLOAD=1
   export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+elif [[ "${VSCODE_ARCH}" == "s390x" ]]; then
+  VSCODE_REMOTE_DEPENDENCIES_CONTAINER_NAME="agrapentin/vscode-linux-build-agent:focal-devtoolset-s390x"
+  export ELECTRON_SKIP_BINARY_DOWNLOAD=1
+  export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+  export VSCODE_SYSROOT_REPO='andreasgrapentin/vscode-linux-build-agent'
+  export VSCODE_SYSROOT_VERSION='20241016'
 fi
 
 export VSCODE_REMOTE_DEPENDENCIES_CONTAINER_NAME
@@ -82,7 +90,7 @@ for i in {1..5}; do # try 5 times
   echo "Npm install failed $i, trying again..."
 done
 
-if [[ "${VSCODE_ARCH}" == "ppc64le" ]]; then
+if [[ "${VSCODE_ARCH}" == "ppc64le" ]] || [[ "${VSCODE_ARCH}" == "s390x" ]]; then
   source ./build/azure-pipelines/linux/setup-env.sh
 else
   ./build/azure-pipelines/linux/setup-env.sh --only-remote
