@@ -264,6 +264,8 @@ jobs:
           npm_arch: ppc64
         - vscode_arch: riscv64
           npm_arch: riscv64
+        - vscode_arch: s390x
+          npm_arch: s390x
     env:
       BUILD_SOURCEVERSION: ${{ needs.compile.outputs.BUILD_SOURCEVERSION }}
       MS_COMMIT: ${{ needs.check.outputs.MS_COMMIT }}

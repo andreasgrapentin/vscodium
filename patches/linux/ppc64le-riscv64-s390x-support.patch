@@ -9,7 +9,7 @@ index 949b5f3..30093d6 100755
 +fi
 +
  export VSCODE_SYSROOT_DIR=$PWD/.build/sysroots
-@@ -67,2 +71,16 @@ elif [ "$npm_config_arch" == "arm" ]; then
+@@ -67,2 +71,30 @@ elif [ "$npm_config_arch" == "arm" ]; then
    export VSCODE_REMOTE_LDFLAGS="--sysroot=$VSCODE_SYSROOT_DIR/arm-rpi-linux-gnueabihf/arm-rpi-linux-gnueabihf/sysroot -L$VSCODE_SYSROOT_DIR/arm-rpi-linux-gnueabihf/arm-rpi-linux-gnueabihf/sysroot/usr/lib/arm-linux-gnueabihf -L$VSCODE_SYSROOT_DIR/arm-rpi-linux-gnueabihf/arm-rpi-linux-gnueabihf/sysroot/lib/arm-linux-gnueabihf"
 +elif [ "$npm_config_arch" == "ppc64" ]; then
 +  if [ "$(echo "$@" | grep -c -- "--only-remote")" -eq 0 ]; then
@@ -25,6 +25,20 @@ index 949b5f3..30093d6 100755
 +    export VSCODE_REMOTE_CXXFLAGS="--sysroot=$VSCODE_SYSROOT_DIR/powerpc64le-linux-gnu/powerpc64le-linux-gnu/sysroot"
 +    export VSCODE_REMOTE_LDFLAGS="--sysroot=$VSCODE_SYSROOT_DIR/powerpc64le-linux-gnu/powerpc64le-linux-gnu/sysroot -L$VSCODE_SYSROOT_DIR/powerpc64le-linux-gnu/powerpc64le-linux-gnu/sysroot/usr/lib/powerpc64le-linux-gnu -L$VSCODE_SYSROOT_DIR/powerpc64le-linux-gnu/powerpc64le-linux-gnu/sysroot/lib/powerpc64le-linux-gnu"
 +  fi
++elif [ "$npm_config_arch" == "s390x" ]; then
++  if [ "$(echo "$@" | grep -c -- "--only-remote")" -eq 0 ]; then
++    # Set compiler toolchain for client native modules
++    export CC=$VSCODE_SYSROOT_DIR/s390x-linux-gnu/bin/s390x-linux-gnu-gcc
++    export CXX=$VSCODE_SYSROOT_DIR/s390x-linux-gnu/bin/s390x-linux-gnu-g++
++    export CXXFLAGS="--sysroot=$VSCODE_SYSROOT_DIR/s390x-linux-gnu/s390x-linux-gnu/sysroot"
++    export LDFLAGS="--sysroot=$VSCODE_SYSROOT_DIR/s390x-linux-gnu/s390x-linux-gnu/sysroot -L$VSCODE_SYSROOT_DIR/s390x-linux-gnu/s390x-linux-gnu/sysroot/usr/lib/s390x-linux-gnu -L$VSCODE_SYSROOT_DIR/s390x-linux-gnu/s390x-linux-gnu/sysroot/lib/s390x-linux-gnu"
++
++    # Set compiler toolchain for remote server
++    export VSCODE_REMOTE_CC=$VSCODE_SYSROOT_DIR/s390x-linux-gnu/bin/s390x-linux-gnu-gcc
++    export VSCODE_REMOTE_CXX=$VSCODE_SYSROOT_DIR/s390x-linux-gnu/bin/s390x-linux-gnu-g++
++    export VSCODE_REMOTE_CXXFLAGS="--sysroot=$VSCODE_SYSROOT_DIR/s390x-linux-gnu/s390x-linux-gnu/sysroot"
++    export VSCODE_REMOTE_LDFLAGS="--sysroot=$VSCODE_SYSROOT_DIR/s390x-linux-gnu/s390x-linux-gnu/sysroot -L$VSCODE_SYSROOT_DIR/s390x-linux-gnu/s390x-linux-gnu/sysroot/usr/lib/s390x-linux-gnu -L$VSCODE_SYSROOT_DIR/s390x-linux-gnu/s390x-linux-gnu/sysroot/lib/s390x-linux-gnu"
++  fi
  fi
 diff --git a/build/azure-pipelines/linux/verify-glibc-requirements.sh b/build/azure-pipelines/linux/verify-glibc-requirements.sh
 index 19482c2..f49d910 100755
@@ -39,17 +53,19 @@ diff --git a/build/checksums/vscode-sysroot.txt b/build/checksums/vscode-sysroot
 index 0b5f38c..9f3b02b 100644
 --- a/build/checksums/vscode-sysroot.txt
 +++ b/build/checksums/vscode-sysroot.txt
-@@ -6 +6,2 @@
+@@ -6 +6,3 @@
  dbb927408393041664a020661f2641c9785741be3d29b050b9dac58980967784  x86_64-linux-gnu-glibc-2.28.tar.gz
 +fa8176d27be18bb0eeb7f55b0fa22255050b430ef68c29136599f02976eb0b1b  powerpc64le-linux-gnu-glibc-2.28.tar.gz
++b52c24157a49d7b47f7b7ec35bb734270b44099685684156f307c4f794d535d3  s390x-linux-gnu-glibc-2.28.tar.gz
 diff --git a/build/gulpfile.reh.js b/build/gulpfile.reh.js
 index 7d58861..f14984f 100644
 --- a/build/gulpfile.reh.js
 +++ b/build/gulpfile.reh.js
-@@ -48,2 +48,4 @@ const BUILD_TARGETS = [
+@@ -48,2 +48,5 @@ const BUILD_TARGETS = [
  	{ platform: 'linux', arch: 'arm64' },
 +	{ platform: 'linux', arch: 'ppc64le' },
 +	{ platform: 'linux', arch: 'riscv64' },
++	{ platform: 'linux', arch: 's390x' },
  	{ platform: 'alpine', arch: 'arm64' },
 @@ -217,2 +219,10 @@ function nodejs(platform, arch) {
  		case 'linux':
@@ -66,10 +82,11 @@ diff --git a/build/gulpfile.scan.js b/build/gulpfile.scan.js
 index 6f8144b..8a8195e 100644
 --- a/build/gulpfile.scan.js
 +++ b/build/gulpfile.scan.js
-@@ -26,2 +26,4 @@ const BUILD_TARGETS = [
+@@ -26,2 +26,5 @@ const BUILD_TARGETS = [
  	{ platform: 'linux', arch: 'arm64' },
 +	{ platform: 'linux', arch: 'ppc64le' },
 +	{ platform: 'linux', arch: 'riscv64' },
++	{ platform: 'linux', arch: 's390x' },
  ];
 diff --git a/build/gulpfile.vscode.js b/build/gulpfile.vscode.js
 index 4af4067..1f99344 100644
@@ -79,7 +96,7 @@ index 4af4067..1f99344 100644
  
 +		const electronOverride = {};
 +		if (process.env.VSCODE_ELECTRON_REPO) {
-+			// electron doesn't support riscv64 and ppc64le, override the repo with `VSCODE_ELECTRON_REPO`.
++			// electron doesn't support riscv64, ppc64le and s390x, override the repo with `VSCODE_ELECTRON_REPO`.
 +			electronOverride.repo = process.env.VSCODE_ELECTRON_REPO;
 +		}
 +
@@ -93,10 +110,11 @@ index 4af4067..1f99344 100644
 -			.pipe(electron({ ...config, platform, arch: arch === 'armhf' ? 'arm' : arch, ffmpegChromium: false }))
 +			.pipe(electron({ ...config, ...electronOverride, platform, arch: arch === 'armhf' ? 'arm' : arch, ffmpegChromium: false }))
  			.pipe(filter(['**', '!LICENSE', '!version'], { dot: true }));
-@@ -449,2 +459,4 @@ const BUILD_TARGETS = [
+@@ -449,2 +459,5 @@ const BUILD_TARGETS = [
  	{ platform: 'linux', arch: 'arm64' },
 +	{ platform: 'linux', arch: 'ppc64le' },
 +	{ platform: 'linux', arch: 'riscv64' },
++	{ platform: 'linux', arch: 's390x' },
  ];
 diff --git a/build/gulpfile.vscode.linux.js b/build/gulpfile.vscode.linux.js
 index 28ddfb0..cb3169c 100644
@@ -105,23 +123,24 @@ index 28ddfb0..cb3169c 100644
 @@ -33,3 +33,3 @@ const linuxPackageRevision = Math.floor(new Date().getTime() / 1000);
  function getDebPackageArch(arch) {
 -	return { x64: 'amd64', armhf: 'armhf', arm64: 'arm64' }[arch];
-+	return { x64: 'amd64', armhf: 'armhf', arm64: 'arm64', ppc64le: 'ppc64el', riscv64: 'riscv64' }[arch];
++	return { x64: 'amd64', armhf: 'armhf', arm64: 'arm64', ppc64le: 'ppc64el', riscv64: 'riscv64', s390x: 's390x' }[arch];
  }
 @@ -141,3 +141,3 @@ function getRpmBuildPath(rpmArch) {
  function getRpmPackageArch(arch) {
 -	return { x64: 'x86_64', armhf: 'armv7hl', arm64: 'aarch64' }[arch];
-+	return { x64: 'x86_64', armhf: 'armv7hl', arm64: 'aarch64', ppc64le: 'ppc64le', riscv64: 'riscv64' }[arch];
++	return { x64: 'x86_64', armhf: 'armv7hl', arm64: 'aarch64', ppc64le: 'ppc64le', riscv64: 'riscv64', s390x: 's390x' }[arch];
  }
-@@ -301,2 +301,4 @@ const BUILD_TARGETS = [
+@@ -301,2 +301,5 @@ const BUILD_TARGETS = [
  	{ arch: 'arm64' },
 +	{ arch: 'ppc64le' },
 +	{ arch: 'riscv64' },
++	{ arch: 's390x' },
  ];
 diff --git a/build/linux/debian/calculate-deps.js b/build/linux/debian/calculate-deps.js
 index bbcb6bf..d00158f 100644
 --- a/build/linux/debian/calculate-deps.js
 +++ b/build/linux/debian/calculate-deps.js
-@@ -51,2 +51,8 @@ function calculatePackageDeps(binaryPath, arch, chromiumSysroot, vscodeSysroot)
+@@ -51,2 +51,11 @@ function calculatePackageDeps(binaryPath, arch, chromiumSysroot, vscodeSysroot)
              break;
 +		case 'ppc64el':
 +			cmd.push(`-l${chromiumSysroot}/usr/lib/powerpc64le-linux-gnu`, `-l${chromiumSysroot}/lib/powerpc64le-linux-gnu`, `-l${vscodeSysroot}/usr/lib/powerpc64le-linux-gnu`, `-l${vscodeSysroot}/lib/powerpc64le-linux-gnu`);
@@ -129,12 +148,15 @@ index bbcb6bf..d00158f 100644
 +		case 'riscv64':
 +			cmd.push(`-l${chromiumSysroot}/usr/lib/riscv64-linux-gnu`, `-l${chromiumSysroot}/lib/riscv64-linux-gnu`, `-l${vscodeSysroot}/usr/lib/riscv64-linux-gnu`, `-l${vscodeSysroot}/lib/riscv64-linux-gnu`);
 +			break;
++		case 's390x':
++			cmd.push(`-l${chromiumSysroot}/usr/lib/s390x-linux-gnu`, `-l${chromiumSysroot}/lib/s390x-linux-gnu`, `-l${vscodeSysroot}/usr/lib/s390x-linux-gnu`, `-l${vscodeSysroot}/lib/s390x-linux-gnu`);
++			break;
      }
 diff --git a/build/linux/debian/calculate-deps.ts b/build/linux/debian/calculate-deps.ts
 index 92f8065..b86b4db 100644
 --- a/build/linux/debian/calculate-deps.ts
 +++ b/build/linux/debian/calculate-deps.ts
-@@ -61,2 +61,14 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
+@@ -61,2 +61,20 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
  			break;
 +		case 'ppc64el':
 +			cmd.push(`-l${chromiumSysroot}/usr/lib/powerpc64le-linux-gnu`,
@@ -148,15 +170,21 @@ index 92f8065..b86b4db 100644
 +				`-l${vscodeSysroot}/usr/lib/riscv64-linux-gnu`,
 +				`-l${vscodeSysroot}/lib/riscv64-linux-gnu`);
 +			break;
++		case 's390x':
++			cmd.push(`-l${chromiumSysroot}/usr/lib/s390x-linux-gnu`,
++				`-l${chromiumSysroot}/lib/s390x-linux-gnu`,
++				`-l${vscodeSysroot}/usr/lib/s390x-linux-gnu`,
++				`-l${vscodeSysroot}/lib/s390x-linux-gnu`);
++			break;
  	}
 diff --git a/build/linux/debian/dep-lists.js b/build/linux/debian/dep-lists.js
 index 3a642a7..91daf09 100644
 --- a/build/linux/debian/dep-lists.js
 +++ b/build/linux/debian/dep-lists.js
-@@ -144,2 +144,81 @@ exports.referenceGeneratedDepsByArch = {
+@@ -144,2 +144,121 @@ exports.referenceGeneratedDepsByArch = {
          'xdg-utils (>= 1.0.2)'
 +    ],
-+	'ppc64el': [
++    'ppc64el': [
 +        'ca-certificates',
 +        'libasound2 (>= 1.0.17)',
 +        'libatk-bridge2.0-0 (>= 2.5.3)',
@@ -195,7 +223,47 @@ index 3a642a7..91daf09 100644
 +        'libxrandr2',
 +        'xdg-utils (>= 1.0.2)'
 +    ],
-+	'riscv64': [
++    'riscv64': [
++        'ca-certificates',
++        'libatomic1',
++        'libasound2 (>= 1.0.17)',
++        'libatk-bridge2.0-0 (>= 2.5.3)',
++        'libatk1.0-0 (>= 2.2.0)',
++        'libatspi2.0-0 (>= 2.9.90)',
++        'libc6 (>= 2.17)',
++        'libc6 (>= 2.28)',
++        'libcairo2 (>= 1.6.0)',
++        'libcurl3-gnutls | libcurl3-nss | libcurl4 | libcurl3',
++        'libdbus-1-3 (>= 1.0.2)',
++        'libdrm2 (>= 2.4.60)',
++        'libexpat1 (>= 2.0.1)',
++        'libgbm1 (>= 17.1.0~rc2)',
++        'libglib2.0-0 (>= 2.16.0)',
++        'libglib2.0-0 (>= 2.39.4)',
++        'libgtk-3-0 (>= 3.9.10)',
++        'libgtk-3-0 (>= 3.9.10) | libgtk-4-1',
++        'libnspr4 (>= 2:4.9-2~)',
++        'libnss3 (>= 2:3.22)',
++        'libnss3 (>= 3.26)',
++        'libpango-1.0-0 (>= 1.14.0)',
++        'libsecret-1-0 (>= 0.18)',
++        'libstdc++6 (>= 4.1.1)',
++        'libstdc++6 (>= 5)',
++        'libstdc++6 (>= 5.2)',
++        'libstdc++6 (>= 6)',
++        'libx11-6',
++        'libx11-6 (>= 2:1.4.99.1)',
++        'libxcb1 (>= 1.9.2)',
++        'libxcomposite1 (>= 1:0.4.4-1)',
++        'libxdamage1 (>= 1:1.1)',
++        'libxext6',
++        'libxfixes3',
++        'libxkbcommon0 (>= 0.4.1)',
++        'libxkbfile1',
++        'libxrandr2',
++        'xdg-utils (>= 1.0.2)'
++    ],
++    's390x': [
 +        'ca-certificates',
 +        'libatomic1',
 +        'libasound2 (>= 1.0.17)',
@@ -239,7 +307,7 @@ diff --git a/build/linux/debian/dep-lists.ts b/build/linux/debian/dep-lists.ts
 index 86d1de1..ab0e268 100644
 --- a/build/linux/debian/dep-lists.ts
 +++ b/build/linux/debian/dep-lists.ts
-@@ -144,2 +144,81 @@ export const referenceGeneratedDepsByArch = {
+@@ -144,2 +144,121 @@ export const referenceGeneratedDepsByArch = {
  		'xdg-utils (>= 1.0.2)'
 +	],
 +	'ppc64el': [
@@ -320,6 +388,46 @@ index 86d1de1..ab0e268 100644
 +		'libxkbfile1',
 +		'libxrandr2',
 +		'xdg-utils (>= 1.0.2)'
++	],
++	's390x': [
++		'ca-certificates',
++		'libatomic1',
++		'libasound2 (>= 1.0.17)',
++		'libatk-bridge2.0-0 (>= 2.5.3)',
++		'libatk1.0-0 (>= 2.2.0)',
++		'libatspi2.0-0 (>= 2.9.90)',
++		'libc6 (>= 2.17)',
++		'libc6 (>= 2.28)',
++		'libcairo2 (>= 1.6.0)',
++		'libcurl3-gnutls | libcurl3-nss | libcurl4 | libcurl3',
++		'libdbus-1-3 (>= 1.0.2)',
++		'libdrm2 (>= 2.4.60)',
++		'libexpat1 (>= 2.0.1)',
++		'libgbm1 (>= 17.1.0~rc2)',
++		'libglib2.0-0 (>= 2.16.0)',
++		'libglib2.0-0 (>= 2.39.4)',
++		'libgtk-3-0 (>= 3.9.10)',
++		'libgtk-3-0 (>= 3.9.10) | libgtk-4-1',
++		'libnspr4 (>= 2:4.9-2~)',
++		'libnss3 (>= 2:3.22)',
++		'libnss3 (>= 3.26)',
++		'libpango-1.0-0 (>= 1.14.0)',
++		'libsecret-1-0 (>= 0.18)',
++		'libstdc++6 (>= 4.1.1)',
++		'libstdc++6 (>= 5)',
++		'libstdc++6 (>= 5.2)',
++		'libstdc++6 (>= 6)',
++		'libx11-6',
++		'libx11-6 (>= 2:1.4.99.1)',
++		'libxcb1 (>= 1.9.2)',
++		'libxcomposite1 (>= 1:0.4.4-1)',
++		'libxdamage1 (>= 1:1.1)',
++		'libxext6',
++		'libxfixes3',
++		'libxkbcommon0 (>= 0.4.1)',
++		'libxkbfile1',
++		'libxrandr2',
++		'xdg-utils (>= 1.0.2)'
  	]
 diff --git a/build/linux/debian/install-sysroot.js b/build/linux/debian/install-sysroot.js
 index feca7d3..f075ebc 100644
@@ -338,7 +446,7 @@ index feca7d3..f075ebc 100644
 -                    throw new Error(`Could not find asset in release of Microsoft/vscode-linux-build-agent @ ${version}`);
 +                    throw new Error(`Could not find asset in release of ${repo} @ ${actualVersion}`);
                  }
-@@ -136,2 +139,10 @@ async function getVSCodeSysroot(arch) {
+@@ -136,2 +139,14 @@ async function getVSCodeSysroot(arch) {
              break;
 +	    case 'ppc64le':
 +	             expectedName = `powerpc64le-linux-gnu${prefix}.tar.gz`;
@@ -347,6 +455,10 @@ index feca7d3..f075ebc 100644
 +	    case 'riscv64':
 +	             expectedName = `riscv64-linux-gnu${prefix}.tar.gz`;
 +	             triple = 'riscv64-linux-gnu';
++	             break;
++	    case 's390x':
++	             expectedName = `s390x-linux-gnu${prefix}.tar.gz`;
++	             triple = 's390x-linux-gnu';
 +	             break;
      }
 diff --git a/build/linux/debian/install-sysroot.ts b/build/linux/debian/install-sysroot.ts
@@ -366,7 +478,7 @@ index aa417dc..58f0eee 100644
 -					throw new Error(`Could not find asset in release of Microsoft/vscode-linux-build-agent @ ${version}`);
 +					throw new Error(`Could not find asset in release of ${repo} @ ${actualVersion}`);
  				}
-@@ -153,2 +156,10 @@ export async function getVSCodeSysroot(arch: DebianArchString): Promise<string>
+@@ -153,2 +156,14 @@ export async function getVSCodeSysroot(arch: DebianArchString): Promise<string>
  			break;
 +		case 'ppc64el':
 +			expectedName = `powerpc64le-linux-gnu${prefix}.tar.gz`;
@@ -376,6 +488,10 @@ index aa417dc..58f0eee 100644
 +			expectedName = `riscv64-linux-gnu${prefix}.tar.gz`;
 +			triple = 'riscv64-linux-gnu';
 +			break;
++		case 's390x':
++			expectedName = `s390x-linux-gnu${prefix}.tar.gz`;
++			triple = 's390x-linux-gnu';
++			break;
  	}
 diff --git a/build/linux/debian/types.js b/build/linux/debian/types.js
 index ce21d50..cadefc2 100644
@@ -384,7 +500,7 @@ index ce21d50..cadefc2 100644
 @@ -8,3 +8,3 @@ exports.isDebianArchString = isDebianArchString;
  function isDebianArchString(s) {
 -    return ['amd64', 'armhf', 'arm64'].includes(s);
-+    return ['amd64', 'armhf', 'arm64', 'ppc64el', 'riscv64'].includes(s);
++    return ['amd64', 'armhf', 'arm64', 'ppc64el', 'riscv64', 's390x'].includes(s);
  }
 diff --git a/build/linux/debian/types.ts b/build/linux/debian/types.ts
 index e97485e..24fe452 100644
@@ -393,11 +509,11 @@ index e97485e..24fe452 100644
 @@ -5,6 +5,6 @@
  
 -export type DebianArchString = 'amd64' | 'armhf' | 'arm64';
-+export type DebianArchString = 'amd64' | 'armhf' | 'arm64' | 'ppc64el' | 'riscv64';
++export type DebianArchString = 'amd64' | 'armhf' | 'arm64' | 'ppc64el' | 'riscv64' | 's390x';
  
  export function isDebianArchString(s: string): s is DebianArchString {
 -	return ['amd64', 'armhf', 'arm64'].includes(s);
-+	return ['amd64', 'armhf', 'arm64', 'ppc64el', 'riscv64'].includes(s);
++	return ['amd64', 'armhf', 'arm64', 'ppc64el', 'riscv64', 's390x'].includes(s);
  }
 diff --git a/build/linux/rpm/dep-lists.js b/build/linux/rpm/dep-lists.js
 index 9798451..bd246e7 100644
@@ -613,6 +729,113 @@ index b798127..c3f5308 100644
 +		'rtld(GNU_HASH)',
 +		'xdg-utils'
  	]
+diff --git a/build/linux/rpm/dep-lists.ts b/build/linux/rpm/dep-lists.ts
+index b798127..c3f5308 100644
+--- a/build/linux/rpm/dep-lists.ts
++++ b/build/linux/rpm/dep-lists.ts
+@@ -320,2 +320,102 @@ export const referenceGeneratedDepsByArch = {
+ 		'xdg-utils'
++	],
++	"s390x": [
++		'ca-certificates',
++		'ld-linux-x86-64.so.2()(64bit)',
++		'ld-linux-x86-64.so.2(GLIBC_2.3)(64bit)',
++		'ld64.so.2()(64bit)',
++		'ld64.so.2(GLIBC_2.17)(64bit)',
++		'libX11.so.6()(64bit)',
++		'libXcomposite.so.1()(64bit)',
++		'libXdamage.so.1()(64bit)',
++		'libXext.so.6()(64bit)',
++		'libXfixes.so.3()(64bit)',
++		'libXrandr.so.2()(64bit)',
++		'libasound.so.2()(64bit)',
++		'libasound.so.2(ALSA_0.9)(64bit)',
++		'libasound.so.2(ALSA_0.9.0rc4)(64bit)',
++		'libatk-1.0.so.0()(64bit)',
++		'libatk-bridge-2.0.so.0()(64bit)',
++		'libatspi.so.0()(64bit)',
++		'libc.so.6()(64bit)',
++		'libc.so.6(GLIBC_2.14)(64bit)',
++		'libc.so.6(GLIBC_2.17)(64bit)',
++		'libc.so.6(GLIBC_2.2.5)(64bit)',
++		'libc.so.6(GLIBC_2.28)(64bit)',
++		'libc.so.6(GLIBC_2.4)(64bit)',
++		'libc.so.6(GLIBC_2.9)(64bit)',
++		'libcairo.so.2()(64bit)',
++		'libcups.so.2()(64bit)',
++		'libcurl.so.4()(64bit)',
++		'libdbus-1.so.3()(64bit)',
++		'libdbus-1.so.3(LIBDBUS_1_3)(64bit)',
++		'libdl.so.2()(64bit)',
++		'libdl.so.2(GLIBC_2.17)(64bit)',
++		'libdrm.so.2()(64bit)',
++		'libexpat.so.1()(64bit)',
++		'libgbm.so.1()(64bit)',
++		'libgcc_s.so.1()(64bit)',
++		'libgcc_s.so.1(GCC_3.0)(64bit)',
++		'libgcc_s.so.1(GCC_3.4.4)(64bit)',
++		'libgio-2.0.so.0()(64bit)',
++		'libglib-2.0.so.0()(64bit)',
++		'libgobject-2.0.so.0()(64bit)',
++		'libgssapi_krb5.so.2()(64bit)',
++		'libgssapi_krb5.so.2(gssapi_krb5_2_MIT)(64bit)',
++		'libgtk-3.so.0()(64bit)',
++		'libkrb5.so.3()(64bit)',
++		'libkrb5.so.3(krb5_3_MIT)(64bit)',
++		'libm.so.6()(64bit)',
++		'libm.so.6(GLIBC_2.17)(64bit)',
++		'libm.so.6(GLIBC_2.2.5)(64bit)',
++		'libm.so.6(GLIBC_2.27)(64bit)',
++		'libnspr4.so()(64bit)',
++		'libnss3.so()(64bit)',
++		'libnss3.so(NSS_3.11)(64bit)',
++		'libnss3.so(NSS_3.12)(64bit)',
++		'libnss3.so(NSS_3.12.1)(64bit)',
++		'libnss3.so(NSS_3.2)(64bit)',
++		'libnss3.so(NSS_3.22)(64bit)',
++		'libnss3.so(NSS_3.3)(64bit)',
++		'libnss3.so(NSS_3.30)(64bit)',
++		'libnss3.so(NSS_3.4)(64bit)',
++		'libnss3.so(NSS_3.5)(64bit)',
++		'libnss3.so(NSS_3.9.2)(64bit)',
++		'libnssutil3.so()(64bit)',
++		'libnssutil3.so(NSSUTIL_3.12.3)(64bit)',
++		'libpango-1.0.so.0()(64bit)',
++		'libpthread.so.0()(64bit)',
++		'libpthread.so.0(GLIBC_2.17)(64bit)',
++		'libpthread.so.0(GLIBC_2.2.5)(64bit)',
++		'libpthread.so.0(GLIBC_2.3.2)(64bit)',
++		'libpthread.so.0(GLIBC_2.3.3)(64bit)',
++		'libsmime3.so()(64bit)',
++		'libsmime3.so(NSS_3.10)(64bit)',
++		'libsmime3.so(NSS_3.2)(64bit)',
++		'libssl3.so(NSS_3.28)(64bit)',
++		'libstdc++.so.6()(64bit)',
++		'libstdc++.so.6(CXXABI_1.3)(64bit)',
++		'libstdc++.so.6(CXXABI_1.3.5)(64bit)',
++		'libstdc++.so.6(CXXABI_1.3.8)(64bit)',
++		'libstdc++.so.6(CXXABI_1.3.9)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.11)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.14)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.15)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.18)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.19)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.20)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.21)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.22)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.5)(64bit)',
++		'libstdc++.so.6(GLIBCXX_3.4.9)(64bit)',
++		'libutil.so.1()(64bit)',
++		'libutil.so.1(GLIBC_2.2.5)(64bit)',
++		'libxcb.so.1()(64bit)',
++		'libxkbcommon.so.0()(64bit)',
++		'libxkbcommon.so.0(V_0.5.0)(64bit)',
++		'libxkbfile.so.1()(64bit)',
++		'rpmlib(FileDigests) <= 4.6.0-1',
++		'rtld(GNU_HASH)',
++		'xdg-utils'
+ 	]
 diff --git a/build/linux/rpm/types.js b/build/linux/rpm/types.js
 index a20b9c2..99a8cff 100644
 --- a/build/linux/rpm/types.js
@@ -620,7 +843,7 @@ index a20b9c2..99a8cff 100644
 @@ -8,3 +8,3 @@ exports.isRpmArchString = isRpmArchString;
  function isRpmArchString(s) {
 -    return ['x86_64', 'armv7hl', 'aarch64'].includes(s);
-+    return ['x86_64', 'armv7hl', 'aarch64', 'ppc64le', 'riscv64'].includes(s);
++    return ['x86_64', 'armv7hl', 'aarch64', 'ppc64le', 'riscv64', 's390x'].includes(s);
  }
 diff --git a/build/linux/rpm/types.ts b/build/linux/rpm/types.ts
 index c6a01da..d94537e 100644
@@ -629,62 +852,71 @@ index c6a01da..d94537e 100644
 @@ -5,6 +5,6 @@
  
 -export type RpmArchString = 'x86_64' | 'armv7hl' | 'aarch64';
-+export type RpmArchString = 'x86_64' | 'armv7hl' | 'aarch64' | 'ppc64le' | 'riscv64';
++export type RpmArchString = 'x86_64' | 'armv7hl' | 'aarch64' | 'ppc64le' | 'riscv64' | 's390x';
  
  export function isRpmArchString(s: string): s is RpmArchString {
 -	return ['x86_64', 'armv7hl', 'aarch64'].includes(s);
-+	return ['x86_64', 'armv7hl', 'aarch64', 'ppc64le', 'riscv64'].includes(s);
++	return ['x86_64', 'armv7hl', 'aarch64', 'ppc64le', 'riscv64', 's390x'].includes(s);
  }
 diff --git a/cli/src/update_service.rs b/cli/src/update_service.rs
 index 4bec13d..3debda1 100644
 --- a/cli/src/update_service.rs
 +++ b/cli/src/update_service.rs
-@@ -216,2 +216,5 @@ pub enum Platform {
+@@ -216,2 +216,6 @@ pub enum Platform {
  	LinuxARM32Legacy,
 +	LinuxPPC64LE,
 +	LinuxPPC64LELegacy,
 +	LinuxRISCV64,
++	LinuxS390X,
  	DarwinX64,
-@@ -229,2 +232,4 @@ impl Platform {
+@@ -229,2 +232,5 @@ impl Platform {
  			Platform::LinuxARM32 => Some("linux-armhf".to_owned()),
 +			Platform::LinuxPPC64LE => Some("linux-ppc64le".to_owned()),
 +			Platform::LinuxRISCV64 => Some("linux-riscv64".to_owned()),
++			Platform::LinuxS390X => Some("linux-s390x".to_owned()),
  			Platform::DarwinX64 => Some("darwin".to_owned()),
-@@ -247,2 +252,5 @@ impl Platform {
+@@ -247,2 +252,6 @@ impl Platform {
  			Platform::LinuxARM32Legacy => "server-linux-legacy-armhf",
 +			Platform::LinuxPPC64LE => "server-linux-ppc64le",
 +			Platform::LinuxPPC64LELegacy => "server-linux-legacy-ppc64le",
 +			Platform::LinuxRISCV64 => "server-linux-riscv64",
++			Platform::LinuxS390X => "server-linux-s390x",
  			Platform::DarwinX64 => "server-darwin",
-@@ -266,2 +274,5 @@ impl Platform {
+@@ -266,2 +274,6 @@ impl Platform {
  			Platform::LinuxARM32Legacy => "cli-linux-armhf",
 +			Platform::LinuxPPC64LE => "cli-linux-ppc64le",
 +			Platform::LinuxPPC64LELegacy => "cli-linux-ppc64le",
 +			Platform::LinuxRISCV64 => "cli-linux-riscv64",
++			Platform::LinuxS390X => "cli-linux-s390x",
  			Platform::DarwinX64 => "cli-darwin-x64",
-@@ -298,2 +309,6 @@ impl Platform {
+@@ -298,2 +309,8 @@ impl Platform {
  			Some(Platform::LinuxARM64)
 +		} else if cfg!(all(target_os = "linux", target_arch = "ppc64le")) {
 +			Some(Platform::LinuxPPC64LE)
 +		} else if cfg!(all(target_os = "linux", target_arch = "riscv64")) {
 +			Some(Platform::LinuxRISCV64)
++		} else if cfg!(all(target_os = "linux", target_arch = "s390x")) {
++			Some(Platform::LinuxS390X)
  		} else if cfg!(all(target_os = "macos", target_arch = "x86_64")) {
-@@ -325,2 +340,5 @@ impl fmt::Display for Platform {
+@@ -325,2 +340,6 @@ impl fmt::Display for Platform {
  			Platform::LinuxARM32Legacy => "LinuxARM32Legacy",
 +			Platform::LinuxPPC64LE => "LinuxPPC64LE",
 +			Platform::LinuxPPC64LELegacy => "LinuxPPC64LELegacy",
 +			Platform::LinuxRISCV64 => "LinuxRISCV64",
++			Platform::LinuxS390X => "LinuxRISCV64",
  			Platform::DarwinX64 => "DarwinX64",
 diff --git a/cli/src/util/prereqs.rs b/cli/src/util/prereqs.rs
 index 0f49ab2..d873a49 100644
 --- a/cli/src/util/prereqs.rs
 +++ b/cli/src/util/prereqs.rs
-@@ -86,2 +86,6 @@ impl PreReqChecker {
+@@ -86,2 +86,8 @@ impl PreReqChecker {
  					Platform::LinuxARM32
 +				} else if cfg!(target_arch = "ppc64le") {
 +					Platform::LinuxPPC64LE
 +				} else if cfg!(target_arch = "riscv64") {
 +					Platform::LinuxRISCV64
++				} else if cfg!(target_arch = "s390x") {
++					Platform::LinuxS390X
  				} else {
 @@ -95,2 +99,4 @@ impl PreReqChecker {
  					Platform::LinuxARM32Legacy
@@ -695,26 +927,29 @@ diff --git a/resources/server/bin/helpers/check-requirements-linux.sh b/resource
 index 31a618f..dc457e0 100644
 --- a/resources/server/bin/helpers/check-requirements-linux.sh
 +++ b/resources/server/bin/helpers/check-requirements-linux.sh
-@@ -56,2 +56,4 @@ case $ARCH in
+@@ -56,2 +56,5 @@ case $ARCH in
  		;;
 +    ppc64el) LDCONFIG_ARCH="64bit";;
 +    riscv64) LDCONFIG_ARCH="RISC-V";;
++    s390x)   LDCONFIG_ARCH="64bit";;
  esac
 diff --git a/src/vs/platform/extensionManagement/common/extensionManagement.ts b/src/vs/platform/extensionManagement/common/extensionManagement.ts
 index 1dcc4c7..54a7f36 100644
 --- a/src/vs/platform/extensionManagement/common/extensionManagement.ts
 +++ b/src/vs/platform/extensionManagement/common/extensionManagement.ts
-@@ -41,2 +41,4 @@ export function TargetPlatformToString(targetPlatform: TargetPlatform) {
+@@ -41,2 +41,5 @@ export function TargetPlatformToString(targetPlatform: TargetPlatform) {
  		case TargetPlatform.LINUX_ARMHF: return 'Linux ARM';
 +		case TargetPlatform.LINUX_PPC64LE: return 'Linux PowerPC64';
 +		case TargetPlatform.LINUX_RISCV64: return 'Linux RISC-V 64';
++		case TargetPlatform.LINUX_S390X: return 'Linux S390X';
  
-@@ -64,2 +66,4 @@ export function toTargetPlatform(targetPlatform: string): TargetPlatform {
+@@ -64,2 +66,5 @@ export function toTargetPlatform(targetPlatform: string): TargetPlatform {
  		case TargetPlatform.LINUX_ARMHF: return TargetPlatform.LINUX_ARMHF;
 +		case TargetPlatform.LINUX_PPC64LE: return TargetPlatform.LINUX_PPC64LE;
 +		case TargetPlatform.LINUX_RISCV64: return TargetPlatform.LINUX_RISCV64;
++		case TargetPlatform.LINUX_S390X: return TargetPlatform.LINUX_S390X;
  
-@@ -99,2 +103,8 @@ export function getTargetPlatform(platform: Platform | 'alpine', arch: string |
+@@ -99,2 +103,11 @@ export function getTargetPlatform(platform: Platform | 'alpine', arch: string |
  			}
 +			if (arch === 'ppc64le') {
 +				return TargetPlatform.LINUX_PPC64LE;
@@ -722,13 +957,51 @@ index 1dcc4c7..54a7f36 100644
 +			if (arch === 'riscv64') {
 +				return TargetPlatform.LINUX_RISCV64;
 +			}
++			if (arch === 's390x') {
++				return TargetPlatform.LINUX_S390X;
++			}
  			return TargetPlatform.UNKNOWN;
 diff --git a/src/vs/platform/extensions/common/extensions.ts b/src/vs/platform/extensions/common/extensions.ts
 index 822260b..fc11650 100644
 --- a/src/vs/platform/extensions/common/extensions.ts
 +++ b/src/vs/platform/extensions/common/extensions.ts
-@@ -294,2 +294,4 @@ export const enum TargetPlatform {
+@@ -294,2 +294,5 @@ export const enum TargetPlatform {
  	LINUX_ARMHF = 'linux-armhf',
 +	LINUX_PPC64LE = 'linux-ppc64le',
 +	LINUX_RISCV64 = 'linux-riscv64',
++	LINUX_S390X = 'linux-s390x',
  
+diff --git a/package-lock.json b/package-lock.json
+index 7b02996..4642486 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -19133,10 +19133,11 @@
+       }
+     },
+     "node_modules/web-tree-sitter": {
+-      "version": "0.20.8",
+-      "resolved": "https://registry.npmjs.org/web-tree-sitter/-/web-tree-sitter-0.20.8.tgz",
+-      "integrity": "sha512-weOVgZ3aAARgdnb220GqYuh7+rZU0Ka9k9yfKtGAzEYMa6GgiCzW9JjQRJyCJakvibQW+dfjJdihjInKuuCAUQ==",
+-      "dev": true
++      "version": "0.23.0",
++      "resolved": "https://registry.npmjs.org/web-tree-sitter/-/web-tree-sitter-0.23.0.tgz",
++      "integrity": "sha512-p1T+ju2H30fpVX2q5yr+Wv/NfdMMWMjQp9Q+4eEPrHAJpPFh9DPfI2Yr9L1f5SA5KPE+g1cNUqPbpihxUDzmVw==",
++      "dev": true,
++      "license": "MIT"
+     },
+     "node_modules/webidl-conversions": {
+       "version": "3.0.1",
+diff --git a/package.json b/package.json
+index 7e0de18..4ceaded 100644
+--- a/package.json
++++ b/package.json
+@@ -225,7 +225,8 @@
+     "yaserver": "^0.4.0"
+   },
+   "overrides": {
+-    "node-gyp-build": "4.8.1"
++    "node-gyp-build": "4.8.1",
++    "web-tree-sitter": "0.23.0"
+   },
+   "repository": {
+     "type": "git",
